@@ -101,6 +101,11 @@ public class SubjectService {
                 .toList();
     }
 
+    public void deleteSubject(Long id) {
+        Subject subject = getSubjectEntity(id);
+        subjectRepository.delete(subject);
+    }
+
     private Subject getSubjectEntity(Long id) {
         return subjectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject not found"));
@@ -112,7 +117,13 @@ public class SubjectService {
     }
 
     private SubjectResponse toSubjectResponse(Subject subject) {
-        return new SubjectResponse(subject.getId(), subject.getName(), subject.getDescription(), subject.isActive());
+        return new SubjectResponse(
+                subject.getId(),
+                subject.getName(),
+                subject.getDescription(),
+                subject.isActive(),
+                subject.getCreatedAt()
+        );
     }
 
     private ChapterResponse toChapterResponse(Chapter chapter) {

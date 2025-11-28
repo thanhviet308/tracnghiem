@@ -28,6 +28,12 @@ public class ExamInstanceController {
         return ResponseEntity.ok(examInstanceService.createInstance(request));
     }
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<List<ExamInstanceResponse>> listAll() {
+        return ResponseEntity.ok(examInstanceService.getAllInstances());
+    }
+
     @GetMapping("/group/{groupId}")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER','SUPERVISOR')")
     public ResponseEntity<List<ExamInstanceResponse>> getByGroup(@PathVariable Long groupId) {

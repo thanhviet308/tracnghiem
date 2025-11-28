@@ -30,8 +30,11 @@ public class ExamTemplateController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExamTemplateResponse>> listTemplates(@RequestParam Long subjectId) {
-        return ResponseEntity.ok(examTemplateService.getTemplatesBySubject(subjectId));
+    public ResponseEntity<List<ExamTemplateResponse>> listTemplates(@RequestParam(required = false) Long subjectId) {
+        if (subjectId != null) {
+            return ResponseEntity.ok(examTemplateService.getTemplatesBySubject(subjectId));
+        }
+        return ResponseEntity.ok(examTemplateService.getAllTemplates());
     }
 
     @GetMapping("/{id}")

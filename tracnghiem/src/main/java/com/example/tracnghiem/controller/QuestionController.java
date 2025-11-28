@@ -59,5 +59,12 @@ public class QuestionController {
         questionService.deleteQuestion(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<List<QuestionResponse>> bulkCreateQuestions(@AuthenticationPrincipal User user,
+                                                                      @RequestBody @Valid List<CreateQuestionRequest> requests) {
+        return ResponseEntity.ok(questionService.bulkCreateQuestions(requests, user.getId()));
+    }
 }
 

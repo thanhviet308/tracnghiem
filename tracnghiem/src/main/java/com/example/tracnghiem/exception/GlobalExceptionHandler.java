@@ -1,8 +1,12 @@
 package com.example.tracnghiem.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -48,10 +52,31 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of("Access denied", List.of(ex.getMessage())));
     }
 
+    @ExceptionHandler({BadCredentialsException.class, AuthenticationException.class})
+    public ResponseEntity<ApiError> handleAuthenticationException(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiError.of("Email hoặc mật khẩu không chính xác", List.of()));
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiError> handleDisabled(DisabledException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiError.of("Tài khoản đã bị vô hiệu hóa", List.of()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleInternal(Exception ex) {
+        // Log the exception for debugging
+        ex.printStackTrace();
+        String message = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiError.of("Unexpected error", List.of(ex.getMessage())));
+                .body(ApiError.of("Unexpected error: " + message, List.of()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of("Không thể xóa vì người dùng đang được sử dụng trong dữ liệu khác", List.of()));
     }
 }
 

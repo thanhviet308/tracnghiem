@@ -44,6 +44,16 @@ public class QuestionService {
         return toResponse(questionRepository.save(question));
     }
 
+    public List<QuestionResponse> bulkCreateQuestions(List<CreateQuestionRequest> requests, Long creatorId) {
+        List<Question> questions = new ArrayList<>();
+        for (CreateQuestionRequest request : requests) {
+            Question question = buildQuestionEntity(new Question(), request, creatorId);
+            questions.add(question);
+        }
+        List<Question> savedQuestions = questionRepository.saveAll(questions);
+        return savedQuestions.stream().map(this::toResponse).toList();
+    }
+
     public QuestionResponse updateQuestion(Long questionId, CreateQuestionRequest request, Long editorId) {
         Question existing = getQuestion(questionId);
         Question updated = buildQuestionEntity(existing, request, editorId);

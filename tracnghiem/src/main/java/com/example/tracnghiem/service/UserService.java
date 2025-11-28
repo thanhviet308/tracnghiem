@@ -1,6 +1,7 @@
 package com.example.tracnghiem.service;
 
 import com.example.tracnghiem.domain.user.User;
+import com.example.tracnghiem.domain.user.UserRole;
 import com.example.tracnghiem.dto.user.CreateUserRequest;
 import com.example.tracnghiem.dto.user.UpdateUserRequest;
 import com.example.tracnghiem.dto.user.UserResponse;
@@ -27,6 +28,10 @@ public class UserService {
 
     public List<UserResponse> listUsers() {
         return userRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    public List<UserResponse> listUsersByRole(UserRole role) {
+        return userRepository.findByRole(role).stream().map(this::toResponse).toList();
     }
 
     public UserResponse getUser(Long id) {
@@ -57,6 +62,9 @@ public class UserService {
         user.setEmail(request.email().toLowerCase());
         user.setRole(request.role());
         user.setActive(request.active());
+        if (request.newPassword() != null && !request.newPassword().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        }
         return toResponse(userRepository.save(user));
     }
 

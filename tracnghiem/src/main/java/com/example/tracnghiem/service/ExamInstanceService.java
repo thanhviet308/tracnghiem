@@ -87,6 +87,12 @@ public class ExamInstanceService {
                 .toList();
     }
 
+    public List<ExamInstanceResponse> getAllInstances() {
+        return examInstanceRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     public List<ExamInstanceResponse> getUpcomingInstancesForStudent(Long studentId) {
         Instant now = Instant.now();
         return classStudentRepository.findByStudent_Id(studentId).stream()

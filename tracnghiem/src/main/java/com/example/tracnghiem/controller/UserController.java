@@ -1,5 +1,6 @@
 package com.example.tracnghiem.controller;
 
+import com.example.tracnghiem.domain.user.UserRole;
 import com.example.tracnghiem.dto.user.CreateUserRequest;
 import com.example.tracnghiem.dto.user.UpdateUserRequest;
 import com.example.tracnghiem.dto.user.UserResponse;
@@ -23,7 +24,10 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> listUsers() {
+    public ResponseEntity<List<UserResponse>> listUsers(@RequestParam(required = false) UserRole role) {
+        if (role != null) {
+            return ResponseEntity.ok(userService.listUsersByRole(role));
+        }
         return ResponseEntity.ok(userService.listUsers());
     }
 

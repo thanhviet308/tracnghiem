@@ -47,6 +47,16 @@ public class User implements UserDetails {
         if (createdAt == null) {
             createdAt = Instant.now();
         }
+        if (email != null) {
+            email = email.toLowerCase().trim();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        if (email != null) {
+            email = email.toLowerCase().trim();
+        }
     }
 
     @Override

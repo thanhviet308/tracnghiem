@@ -9,7 +9,8 @@ public record UpdateUserRequest(
         @NotBlank String fullName,
         @Email @NotBlank String email,
         @NotNull UserRole role,
-        boolean active
+        boolean active,
+        String newPassword
 ) {
 }
 

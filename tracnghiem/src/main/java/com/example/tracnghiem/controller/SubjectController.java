@@ -53,6 +53,13 @@ public class SubjectController {
         return ResponseEntity.ok(subjectService.updateChapter(id, request));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<Void> deleteSubject(@PathVariable Long id) {
+        subjectService.deleteSubject(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/chapters/{chapterId}/passages")
     public ResponseEntity<List<PassageResponse>> listPassages(@PathVariable Long chapterId) {
         return ResponseEntity.ok(subjectService.getPassages(chapterId));

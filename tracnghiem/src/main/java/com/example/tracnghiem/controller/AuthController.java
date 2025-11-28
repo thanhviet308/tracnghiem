@@ -2,6 +2,7 @@ package com.example.tracnghiem.controller;
 
 import com.example.tracnghiem.dto.auth.LoginRequest;
 import com.example.tracnghiem.dto.auth.RefreshTokenRequest;
+import com.example.tracnghiem.dto.auth.RegisterRequest;
 import com.example.tracnghiem.dto.auth.TokenResponse;
 import com.example.tracnghiem.service.AuthService;
 import jakarta.validation.Valid;
@@ -19,6 +20,11 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<TokenResponse> register(@RequestBody @Valid RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
