@@ -12,7 +12,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_supervisors")
+@Table(name = "giam_thi")
 public class ExamSupervisor {
 
     @Id
@@ -20,17 +20,14 @@ public class ExamSupervisor {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exam_instance_id", nullable = false)
+    @JoinColumn(name = "ma_ky_thi", nullable = false)
     private ExamInstance examInstance;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supervisor_id", nullable = false)
+    @JoinColumn(name = "ma_giam_thi", nullable = false)
     private User supervisor;
 
-    @Column(name = "room_number")
-    private String roomNumber;
-
-    @Column(name = "assigned_at", nullable = false)
+    @Column(name = "ngay_phan_cong", nullable = false)
     private Instant assignedAt;
 
     @PrePersist

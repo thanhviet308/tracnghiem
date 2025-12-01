@@ -11,23 +11,23 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "subjects")
+@Table(name = "mon_hoc")
 public class Subject {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "ten_mon", nullable = false, unique = true)
     private String name;
 
-    @Column(columnDefinition = "text")
+    @Column(name = "mo_ta", columnDefinition = "text")
     private String description;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "trang_thai", nullable = false)
     private boolean active = true;
 
     @PrePersist

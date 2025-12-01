@@ -2,7 +2,6 @@ package com.example.tracnghiem.dto.question;
 
 import com.example.tracnghiem.domain.question.QuestionType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -14,10 +13,7 @@ public record CreateQuestionRequest(
         @NotBlank String content,
         @NotNull QuestionType questionType,
         String difficulty,
-        @Min(1) Integer marks,
         boolean active,
         @Valid List<QuestionOptionRequest> options,
-        @Valid List<QuestionAnswerRequest> answers
-) {
+        @Valid List<QuestionAnswerRequest> answers) {
 }
-

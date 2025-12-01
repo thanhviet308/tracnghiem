@@ -11,7 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "question_answers")
+@Table(name = "dap_an_cau_hoi")
 public class QuestionAnswer {
 
     @Id
@@ -19,13 +19,13 @@ public class QuestionAnswer {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
+    @JoinColumn(name = "ma_cau_hoi", nullable = false)
     private Question question;
 
-    @Column(name = "correct_answer", columnDefinition = "text", nullable = false)
+    @Column(name = "dap_an_dung", columnDefinition = "text", nullable = false)
     private String correctAnswer;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
     @PrePersist

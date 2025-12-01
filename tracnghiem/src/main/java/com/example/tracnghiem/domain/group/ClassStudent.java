@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "class_student")
+@Table(name = "lop_sinh_vien")
 public class ClassStudent {
 
     @EmbeddedId
@@ -18,12 +18,12 @@ public class ClassStudent {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("studentGroupId")
-    @JoinColumn(name = "student_group_id")
+    @JoinColumn(name = "ma_nhom")
     private StudentGroup studentGroup;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("studentId")
-    @JoinColumn(name = "student_id")
+    @JoinColumn(name = "ma_sinh_vien")
     private User student;
 
 }

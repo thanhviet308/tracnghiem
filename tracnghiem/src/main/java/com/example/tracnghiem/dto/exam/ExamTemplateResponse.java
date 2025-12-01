@@ -7,10 +7,8 @@ public record ExamTemplateResponse(
         Long subjectId,
         String name,
         Integer totalQuestions,
-        Integer durationMinutes,
-        List<ExamStructurePayload> structures
-) {
-    public record ExamStructurePayload(Long id, Long chapterId, Integer numQuestion) {
+        List<ExamStructurePayload> structures) {
+    public record ExamStructurePayload(Long id, Long chapterId, Integer numQuestion, Integer numBasic,
+            Integer numAdvanced) {
     }
 }
-

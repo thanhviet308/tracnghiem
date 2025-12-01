@@ -11,7 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "chapters")
+@Table(name = "chuong")
 public class Chapter {
 
     @Id
@@ -19,16 +19,16 @@ public class Chapter {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id", nullable = false)
+    @JoinColumn(name = "ma_mon", nullable = false)
     private Subject subject;
 
-    @Column(nullable = false)
+    @Column(name = "ten_chuong", nullable = false)
     private String name;
 
-    @Column(columnDefinition = "text")
+    @Column(name = "mo_ta", columnDefinition = "text")
     private String description;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
     @PrePersist

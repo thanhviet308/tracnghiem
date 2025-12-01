@@ -8,14 +8,14 @@ public record ExamInstanceResponse(
         Long templateId,
         Long studentGroupId,
         String name,
+        String subjectName,
         Instant startTime,
         Instant endTime,
         Integer durationMinutes,
+        Integer totalMarks,
         boolean shuffleQuestions,
         boolean shuffleOptions,
-        List<SupervisorPayload> supervisors
-) {
-    public record SupervisorPayload(Long userId, String fullName, String roomNumber) {
+        List<SupervisorPayload> supervisors) {
+    public record SupervisorPayload(Long userId, String fullName) {
     }
 }
-

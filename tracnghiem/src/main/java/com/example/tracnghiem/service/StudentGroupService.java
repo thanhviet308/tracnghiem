@@ -104,8 +104,28 @@ public class StudentGroupService {
         }
     }
 
+    public List<com.example.tracnghiem.dto.user.UserResponse> getStudentsInGroup(Long groupId) {
+        getGroup(groupId); // Verify group exists
+        List<ClassStudent> classStudents = classStudentRepository.findByStudentGroup_Id(groupId);
+        return classStudents.stream()
+                .map(cs -> new com.example.tracnghiem.dto.user.UserResponse(
+                        cs.getStudent().getId(),
+                        cs.getStudent().getFullName(),
+                        cs.getStudent().getEmail(),
+                        cs.getStudent().getRole(),
+                        cs.getStudent().isActive()
+                ))
+                .toList();
+    }
+
     public List<StudentGroupSubjectResponse> listAssignments() {
         return studentGroupSubjectRepository.findAll().stream()
+                .map(this::toAssignmentResponse)
+                .toList();
+    }
+
+    public List<StudentGroupSubjectResponse> getAssignmentsByTeacher(Long teacherId) {
+        return studentGroupSubjectRepository.findByTeacher_Id(teacherId).stream()
                 .map(this::toAssignmentResponse)
                 .toList();
     }
@@ -130,6 +150,35 @@ public class StudentGroupService {
         entity.setTeacher(teacher);
         StudentGroupSubject saved = studentGroupSubjectRepository.save(entity);
         return toAssignmentResponse(saved);
+    }
+
+    public StudentGroupSubjectResponse updateAssignment(Long groupId, Long subjectId, StudentGroupSubjectRequest request) {
+        // Verify the assignment exists
+        StudentGroupSubjectId oldId = new StudentGroupSubjectId(groupId, subjectId);
+        StudentGroupSubject oldEntity = studentGroupSubjectRepository.findById(oldId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
+        
+        // Check if group or subject changed
+        boolean groupChanged = !oldId.getStudentGroupId().equals(request.groupId());
+        boolean subjectChanged = !oldId.getSubjectId().equals(request.subjectId());
+        
+        if (groupChanged || subjectChanged) {
+            // If group or subject changed, delete old assignment and create new one
+            studentGroupSubjectRepository.deleteById(oldId);
+            // Create new assignment with new group/subject
+            return createAssignment(request);
+        } else {
+            // Only teacher changed, update existing assignment
+            User teacher = userRepository.findById(request.teacherId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
+            if (teacher.getRole() != UserRole.TEACHER) {
+                throw new ResourceNotFoundException("Teacher not found");
+            }
+            
+            oldEntity.setTeacher(teacher);
+            StudentGroupSubject saved = studentGroupSubjectRepository.save(oldEntity);
+            return toAssignmentResponse(saved);
+        }
     }
 
     public void deleteAssignment(Long groupId, Long subjectId) {

@@ -23,8 +23,8 @@ public class StatisticsService {
     private final ExamInstanceService examInstanceService;
 
     public StatisticsService(ExamAttemptRepository examAttemptRepository,
-                             ExamAnswerRepository examAnswerRepository,
-                             ExamInstanceService examInstanceService) {
+            ExamAnswerRepository examAnswerRepository,
+            ExamInstanceService examInstanceService) {
         this.examAttemptRepository = examAttemptRepository;
         this.examAnswerRepository = examAnswerRepository;
         this.examInstanceService = examInstanceService;
@@ -34,10 +34,12 @@ public class StatisticsService {
         ExamInstance examInstance = examInstanceService.getExamInstance(examInstanceId);
         List<ExamAttempt> attempts = examAttemptRepository.findByExamInstance_Id(examInstanceId);
         List<Long> attemptIds = attempts.stream().map(ExamAttempt::getId).toList();
-        List<ExamAnswer> answers = attemptIds.isEmpty() ? List.of() : examAnswerRepository.findByAttempt_IdIn(attemptIds);
+        List<ExamAnswer> answers = attemptIds.isEmpty() ? List.of()
+                : examAnswerRepository.findByAttempt_IdIn(attemptIds);
         List<ExamQuestion> examQuestions = examInstanceService.getExamQuestions(examInstanceId);
 
-        double maxScore = examQuestions.stream().mapToInt(eq -> eq.getQuestion().getMarks()).sum();
+        // Tổng điểm = totalMarks của ExamInstance
+        double maxScore = examInstance.getTotalMarks();
         double averageScore = attempts.stream()
                 .filter(a -> a.getScore() != null)
                 .mapToInt(ExamAttempt::getScore)
@@ -49,7 +51,8 @@ public class StatisticsService {
 
         Map<String, Long> distribution = buildDistribution(attempts, maxScore);
         List<ExamStatisticsResponse.QuestionAccuracy> questionAccuracy = buildQuestionAccuracy(examQuestions, answers);
-        List<ExamStatisticsResponse.ChapterAccuracy> chapterAccuracy = buildChapterAccuracy(examQuestions, questionAccuracy);
+        List<ExamStatisticsResponse.ChapterAccuracy> chapterAccuracy = buildChapterAccuracy(examQuestions,
+                questionAccuracy);
 
         return new ExamStatisticsResponse(
                 averageScore,
@@ -58,8 +61,7 @@ public class StatisticsService {
                 maxScore,
                 distribution,
                 questionAccuracy,
-                chapterAccuracy
-        );
+                chapterAccuracy);
     }
 
     private Map<String, Long> buildDistribution(List<ExamAttempt> attempts, double maxScore) {
@@ -89,7 +91,8 @@ public class StatisticsService {
         return distribution;
     }
 
-    private List<ExamStatisticsResponse.QuestionAccuracy> buildQuestionAccuracy(List<ExamQuestion> examQuestions, List<ExamAnswer> answers) {
+    private List<ExamStatisticsResponse.QuestionAccuracy> buildQuestionAccuracy(List<ExamQuestion> examQuestions,
+            List<ExamAnswer> answers) {
         Map<Long, QuestionStats> stats = new HashMap<>();
         examQuestions.forEach(eq -> stats.put(eq.getQuestion().getId(), new QuestionStats(eq.getQuestion())));
 
@@ -107,30 +110,29 @@ public class StatisticsService {
                 .map(stat -> new ExamStatisticsResponse.QuestionAccuracy(
                         stat.question.getId(),
                         stat.question.getContent(),
-                        stat.total == 0 ? 0 : (double) stat.correct / stat.total
-                ))
+                        stat.total == 0 ? 0 : (double) stat.correct / stat.total))
                 .sorted(Comparator.comparing(ExamStatisticsResponse.QuestionAccuracy::questionId))
                 .toList();
     }
 
     private List<ExamStatisticsResponse.ChapterAccuracy> buildChapterAccuracy(List<ExamQuestion> examQuestions,
-                                                                              List<ExamStatisticsResponse.QuestionAccuracy> questionAccuracy) {
+            List<ExamStatisticsResponse.QuestionAccuracy> questionAccuracy) {
         Map<Long, ExamStatisticsResponse.QuestionAccuracy> qaMap = questionAccuracy.stream()
                 .collect(Collectors.toMap(ExamStatisticsResponse.QuestionAccuracy::questionId, qa -> qa));
 
         Map<Long, List<Question>> chapterQuestions = examQuestions.stream()
                 .collect(Collectors.groupingBy(
                         eq -> eq.getQuestion().getChapter().getId(),
-                        Collectors.mapping(ExamQuestion::getQuestion, Collectors.toList())
-                ));
+                        Collectors.mapping(ExamQuestion::getQuestion, Collectors.toList())));
 
         return chapterQuestions.entrySet().stream()
                 .map(entry -> {
                     double avg = entry.getValue().stream()
                             .mapToDouble(question -> qaMap.getOrDefault(
                                     question.getId(),
-                                    new ExamStatisticsResponse.QuestionAccuracy(question.getId(), question.getContent(), 0)
-                            ).correctRate())
+                                    new ExamStatisticsResponse.QuestionAccuracy(question.getId(), question.getContent(),
+                                            0))
+                                    .correctRate())
                             .average()
                             .orElse(0);
                     String chapterName = entry.getValue().stream()
@@ -160,4 +162,3 @@ public class StatisticsService {
         }
     }
 }
-

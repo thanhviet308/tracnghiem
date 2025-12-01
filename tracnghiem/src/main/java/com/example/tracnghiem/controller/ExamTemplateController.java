@@ -3,6 +3,7 @@ package com.example.tracnghiem.controller;
 import com.example.tracnghiem.domain.user.User;
 import com.example.tracnghiem.dto.exam.CreateExamTemplateRequest;
 import com.example.tracnghiem.dto.exam.ExamTemplateResponse;
+import com.example.tracnghiem.dto.exam.UpdateExamTemplateRequest;
 import com.example.tracnghiem.service.ExamTemplateService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/exam-templates")
-@PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+@PreAuthorize("hasAnyRole('ADMIN','TEACHER','SUPERVISOR')")
 public class ExamTemplateController {
 
     private final ExamTemplateService examTemplateService;
@@ -40,6 +41,12 @@ public class ExamTemplateController {
     @GetMapping("/{id}")
     public ResponseEntity<ExamTemplateResponse> getTemplate(@PathVariable Long id) {
         return ResponseEntity.ok(examTemplateService.getTemplate(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ExamTemplateResponse> updateTemplate(@PathVariable Long id,
+                                                               @RequestBody @Valid UpdateExamTemplateRequest request) {
+        return ResponseEntity.ok(examTemplateService.updateTemplate(id, request));
     }
 }
 

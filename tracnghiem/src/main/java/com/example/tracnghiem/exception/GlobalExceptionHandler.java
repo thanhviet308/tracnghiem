@@ -43,13 +43,13 @@ public class GlobalExceptionHandler {
                 .toList()
                 : List.of(ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiError.of("Validation failed", details));
+                .body(ApiError.of("Dữ liệu không hợp lệ", details));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiError.of("Access denied", List.of(ex.getMessage())));
+                .body(ApiError.of("Không có quyền truy cập", List.of(ex.getMessage())));
     }
 
     @ExceptionHandler({BadCredentialsException.class, AuthenticationException.class})
@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
         ex.printStackTrace();
         String message = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiError.of("Unexpected error: " + message, List.of()));
+                .body(ApiError.of("Lỗi không mong muốn: " + message, List.of()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

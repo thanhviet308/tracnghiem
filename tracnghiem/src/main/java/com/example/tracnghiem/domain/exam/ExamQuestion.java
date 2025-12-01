@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_questions")
+@Table(name = "cau_hoi_ky_thi")
 public class ExamQuestion {
 
     @EmbeddedId
@@ -18,15 +18,14 @@ public class ExamQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("examInstanceId")
-    @JoinColumn(name = "exam_instance_id")
+    @JoinColumn(name = "ma_ky_thi")
     private ExamInstance examInstance;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("questionId")
-    @JoinColumn(name = "question_id")
+    @JoinColumn(name = "ma_cau_hoi")
     private Question question;
 
-    @Column(name = "question_order")
+    @Column(name = "thu_tu")
     private Integer questionOrder;
 }
-

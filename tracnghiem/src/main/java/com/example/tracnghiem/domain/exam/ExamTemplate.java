@@ -15,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_templates")
+@Table(name = "khung_de_thi")
 public class ExamTemplate {
 
     @Id
@@ -23,23 +23,20 @@ public class ExamTemplate {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id", nullable = false)
+    @JoinColumn(name = "ma_mon", nullable = false)
     private Subject subject;
 
-    @Column(nullable = false)
+    @Column(name = "ten_de", nullable = false)
     private String name;
 
-    @Column(name = "total_questions", nullable = false)
+    @Column(name = "tong_so_cau", nullable = false)
     private Integer totalQuestions;
 
-    @Column(name = "duration_minutes", nullable = false)
-    private Integer durationMinutes;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
+    @JoinColumn(name = "nguoi_tao")
     private User createdBy;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
     @OneToMany(mappedBy = "template", cascade = CascadeType.ALL, orphanRemoval = true)

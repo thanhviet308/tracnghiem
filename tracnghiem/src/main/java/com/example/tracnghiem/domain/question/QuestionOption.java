@@ -9,7 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "question_options")
+@Table(name = "lua_chon")
 public class QuestionOption {
 
     @Id
@@ -17,16 +17,16 @@ public class QuestionOption {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
+    @JoinColumn(name = "ma_cau_hoi", nullable = false)
     private Question question;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "noi_dung", columnDefinition = "text", nullable = false)
     private String content;
 
-    @Column(name = "is_correct", nullable = false)
+    @Column(name = "dap_an_dung", nullable = false)
     private boolean correct;
 
-    @Column(name = "option_order")
+    @Column(name = "thu_tu")
     private Integer optionOrder;
 }
 

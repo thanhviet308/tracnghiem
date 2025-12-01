@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_structure")
+@Table(name = "cau_truc_de")
 public class ExamStructure {
 
     @Id
@@ -18,14 +18,21 @@ public class ExamStructure {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "template_id", nullable = false)
+    @JoinColumn(name = "ma_khung_de", nullable = false)
     private ExamTemplate template;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chapter_id", nullable = false)
+    @JoinColumn(name = "ma_chuong", nullable = false)
     private Chapter chapter;
 
-    @Column(name = "num_question", nullable = false)
+    @Column(name = "so_cau", nullable = false)
     private Integer numQuestion;
-}
 
+    @Builder.Default
+    @Column(name = "so_cau_co_ban", nullable = false)
+    private Integer numBasic = 0; // Số câu hỏi cơ bản
+
+    @Builder.Default
+    @Column(name = "so_cau_nang_cao", nullable = false)
+    private Integer numAdvanced = 0; // Số câu hỏi nâng cao
+}

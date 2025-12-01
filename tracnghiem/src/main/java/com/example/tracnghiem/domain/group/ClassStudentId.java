@@ -17,10 +17,10 @@ import java.io.Serializable;
 @Getter
 @Setter
 public class ClassStudentId implements Serializable {
-    @Column(name = "student_group_id")
+    @Column(name = "ma_nhom")
     private Long studentGroupId;
 
-    @Column(name = "student_id")
+    @Column(name = "ma_sinh_vien")
     private Long studentId;
 }
 

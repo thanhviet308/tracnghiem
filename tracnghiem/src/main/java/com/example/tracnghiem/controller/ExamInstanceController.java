@@ -3,6 +3,7 @@ package com.example.tracnghiem.controller;
 import com.example.tracnghiem.domain.user.User;
 import com.example.tracnghiem.dto.exam.CreateExamInstanceRequest;
 import com.example.tracnghiem.dto.exam.ExamInstanceResponse;
+import com.example.tracnghiem.dto.exam.UpdateExamInstanceRequest;
 import com.example.tracnghiem.service.ExamInstanceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,35 @@ public class ExamInstanceController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<List<ExamInstanceResponse>> getMyExams(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(examInstanceService.getUpcomingInstancesForStudent(user.getId()));
+    }
+
+    @GetMapping("/my/all")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<ExamInstanceResponse>> getAllMyExams(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(examInstanceService.getAllInstancesForStudent(user.getId()));
+    }
+
+    @PostMapping("/{id}/supervisors")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<ExamInstanceResponse> assignSupervisors(
+            @PathVariable Long id,
+            @RequestBody @Valid List<CreateExamInstanceRequest.SupervisorAssignment> supervisors) {
+        return ResponseEntity.ok(examInstanceService.assignSupervisorsToInstance(id, supervisors));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<ExamInstanceResponse> updateInstance(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateExamInstanceRequest request) {
+        return ResponseEntity.ok(examInstanceService.updateInstance(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    public ResponseEntity<Void> deleteInstance(@PathVariable Long id) {
+        examInstanceService.deleteInstance(id);
+        return ResponseEntity.ok().build();
     }
 }
 

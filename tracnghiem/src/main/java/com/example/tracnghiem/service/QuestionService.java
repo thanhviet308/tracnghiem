@@ -10,12 +10,15 @@ import com.example.tracnghiem.dto.question.QuestionOptionRequest;
 import com.example.tracnghiem.exception.BadRequestException;
 import com.example.tracnghiem.exception.ResourceNotFoundException;
 import com.example.tracnghiem.repository.ChapterRepository;
+import com.example.tracnghiem.repository.ExamInstanceRepository;
+import com.example.tracnghiem.repository.ExamQuestionRepository;
 import com.example.tracnghiem.repository.PassageRepository;
 import com.example.tracnghiem.repository.QuestionRepository;
 import com.example.tracnghiem.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,15 +31,21 @@ public class QuestionService {
     private final ChapterRepository chapterRepository;
     private final PassageRepository passageRepository;
     private final UserRepository userRepository;
+    private final ExamQuestionRepository examQuestionRepository;
+    private final ExamInstanceRepository examInstanceRepository;
 
     public QuestionService(QuestionRepository questionRepository,
-                           ChapterRepository chapterRepository,
-                           PassageRepository passageRepository,
-                           UserRepository userRepository) {
+            ChapterRepository chapterRepository,
+            PassageRepository passageRepository,
+            UserRepository userRepository,
+            ExamQuestionRepository examQuestionRepository,
+            ExamInstanceRepository examInstanceRepository) {
         this.questionRepository = questionRepository;
         this.chapterRepository = chapterRepository;
         this.passageRepository = passageRepository;
         this.userRepository = userRepository;
+        this.examQuestionRepository = examQuestionRepository;
+        this.examInstanceRepository = examInstanceRepository;
     }
 
     public QuestionResponse createQuestion(CreateQuestionRequest request, Long creatorId) {
@@ -68,12 +77,30 @@ public class QuestionService {
                 filter.difficulty(),
                 filter.createdBy(),
                 filter.hasPassage(),
-                filter.questionType()
-        ).stream().map(this::toResponse).toList();
+                filter.questionType()).stream().map(this::toResponse).toList();
     }
 
     public void deleteQuestion(Long id) {
         Question question = getQuestion(id);
+        
+        // Check if question is being used in any exam
+        List<Long> examInstanceIds = examQuestionRepository.findExamInstanceIdsByQuestionId(id);
+        if (!examInstanceIds.isEmpty()) {
+            // Kiểm tra xem có exam nào chưa kết thúc không
+            Instant now = Instant.now();
+            List<Long> activeExamIds = examInstanceRepository.findAllById(examInstanceIds).stream()
+                    .filter(exam -> exam.getEndTime().isAfter(now))
+                    .map(exam -> exam.getId())
+                    .toList();
+            
+            if (!activeExamIds.isEmpty()) {
+                throw new BadRequestException(
+                        "Không thể xóa câu hỏi này vì nó đang được sử dụng trong kỳ thi chưa kết thúc. " +
+                        "Vui lòng đợi kỳ thi kết thúc hoặc vô hiệu hóa câu hỏi thay vì xóa.");
+            }
+            // Nếu tất cả exam đã kết thúc, cho phép xóa (dữ liệu lịch sử vẫn được giữ trong exam_questions)
+        }
+        
         questionRepository.delete(question);
     }
 
@@ -85,8 +112,8 @@ public class QuestionService {
     private Question buildQuestionEntity(Question question, CreateQuestionRequest request, Long creatorId) {
         Chapter chapter = chapterRepository.findById(request.chapterId())
                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found"));
-        Passage passage = request.passageId() == null ? null :
-                passageRepository.findById(request.passageId())
+        Passage passage = request.passageId() == null ? null
+                : passageRepository.findById(request.passageId())
                         .orElseThrow(() -> new ResourceNotFoundException("Passage not found"));
         User creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
@@ -96,7 +123,6 @@ public class QuestionService {
         question.setContent(request.content());
         question.setQuestionType(request.questionType());
         question.setDifficulty(request.difficulty());
-        question.setMarks(request.marks());
         question.setActive(request.active());
         question.setCreatedBy(creator);
 
@@ -160,11 +186,8 @@ public class QuestionService {
                 question.getContent(),
                 question.getQuestionType(),
                 question.getDifficulty(),
-                question.getMarks(),
                 question.isActive(),
                 options,
-                answers
-        );
+                answers);
     }
 }
-

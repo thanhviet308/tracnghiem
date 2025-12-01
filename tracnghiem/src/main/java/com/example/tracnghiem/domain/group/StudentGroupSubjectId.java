@@ -18,10 +18,10 @@ import java.io.Serializable;
 @Setter
 public class StudentGroupSubjectId implements Serializable {
 
-    @Column(name = "student_group_id")
+    @Column(name = "ma_nhom")
     private Long studentGroupId;
 
-    @Column(name = "subject_id")
+    @Column(name = "ma_mon")
     private Long subjectId;
 }
 

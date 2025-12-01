@@ -3,6 +3,7 @@ package com.example.tracnghiem.controller;
 import com.example.tracnghiem.domain.user.User;
 import com.example.tracnghiem.dto.exam.*;
 import com.example.tracnghiem.service.ExamAttemptService;
+import com.example.tracnghiem.service.ViolationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,9 +17,12 @@ import java.util.List;
 public class ExamAttemptController {
 
     private final ExamAttemptService examAttemptService;
+    private final ViolationService violationService;
 
-    public ExamAttemptController(ExamAttemptService examAttemptService) {
+    public ExamAttemptController(ExamAttemptService examAttemptService,
+                                ViolationService violationService) {
         this.examAttemptService = examAttemptService;
+        this.violationService = violationService;
     }
 
     @PostMapping("/{examInstanceId}/start")
@@ -60,6 +64,21 @@ public class ExamAttemptController {
     public ResponseEntity<ExamAttemptDetailResponse> detail(@PathVariable Long attemptId,
                                                             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(examAttemptService.getAttemptDetail(attemptId, user));
+    }
+
+    @PostMapping("/{attemptId}/violations")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<Void> reportViolation(@PathVariable Long attemptId,
+                                               @AuthenticationPrincipal User student,
+                                               @RequestBody @Valid ViolationRequest request) {
+        violationService.reportViolation(attemptId, student, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/exam/{examInstanceId}/violations")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','SUPERVISOR')")
+    public ResponseEntity<List<ViolationResponse>> getViolationsForExam(@PathVariable Long examInstanceId) {
+        return ResponseEntity.ok(violationService.getViolationsForExam(examInstanceId));
     }
 }
 

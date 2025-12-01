@@ -34,4 +34,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByChapter_IdAndActiveTrue(Long chapterId);
 
     long countByChapter_IdAndActiveTrue(Long chapterId);
+    
+    // Tìm tất cả câu hỏi cùng passage
+    List<Question> findByPassage_IdAndActiveTrue(Long passageId);
 }

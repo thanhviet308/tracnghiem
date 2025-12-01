@@ -8,6 +8,7 @@ import com.example.tracnghiem.domain.user.User;
 import com.example.tracnghiem.dto.exam.CreateExamTemplateRequest;
 import com.example.tracnghiem.dto.exam.ExamStructureRequest;
 import com.example.tracnghiem.dto.exam.ExamTemplateResponse;
+import com.example.tracnghiem.dto.exam.UpdateExamTemplateRequest;
 import com.example.tracnghiem.exception.BadRequestException;
 import com.example.tracnghiem.exception.ResourceNotFoundException;
 import com.example.tracnghiem.repository.ChapterRepository;
@@ -36,11 +37,11 @@ public class ExamTemplateService {
     private final UserRepository userRepository;
 
     public ExamTemplateService(ExamTemplateRepository templateRepository,
-                               ExamStructureRepository structureRepository,
-                               SubjectRepository subjectRepository,
-                               ChapterRepository chapterRepository,
-                               QuestionRepository questionRepository,
-                               UserRepository userRepository) {
+            ExamStructureRepository structureRepository,
+            SubjectRepository subjectRepository,
+            ChapterRepository chapterRepository,
+            QuestionRepository questionRepository,
+            UserRepository userRepository) {
         this.templateRepository = templateRepository;
         this.structureRepository = structureRepository;
         this.subjectRepository = subjectRepository;
@@ -61,7 +62,6 @@ public class ExamTemplateService {
                 .subject(subject)
                 .name(request.name())
                 .totalQuestions(request.totalQuestions())
-                .durationMinutes(request.durationMinutes())
                 .createdBy(creator)
                 .structures(new ArrayList<>()) // Initialize empty list to avoid NullPointerException
                 .build();
@@ -70,8 +70,8 @@ public class ExamTemplateService {
         if (request.structures() != null && !request.structures().isEmpty()) {
             Map<Long, Chapter> chapterCache = new HashMap<>();
             request.structures().forEach(structureRequest -> {
-                Chapter chapter = chapterCache.computeIfAbsent(structureRequest.chapterId(), id ->
-                        chapterRepository.findById(id)
+                Chapter chapter = chapterCache.computeIfAbsent(structureRequest.chapterId(),
+                        id -> chapterRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException("Chapter not found: " + id)));
                 long available = questionRepository.countByChapter_IdAndActiveTrue(chapter.getId());
                 if (available < structureRequest.numQuestion()) {
@@ -81,6 +81,8 @@ public class ExamTemplateService {
                         .chapter(chapter)
                         .template(template)
                         .numQuestion(structureRequest.numQuestion())
+                        .numBasic(structureRequest.numBasic() != null ? structureRequest.numBasic() : 0)
+                        .numAdvanced(structureRequest.numAdvanced() != null ? structureRequest.numAdvanced() : 0)
                         .build();
                 template.getStructures().add(structure);
             });
@@ -88,12 +90,13 @@ public class ExamTemplateService {
 
         ExamTemplate savedTemplate = templateRepository.save(template);
         templateRepository.flush();
-        
+
         // Fetch again with relationships to avoid lazy loading issues
-        // The findByIdWithRelations query will eagerly fetch subject and structures with chapters
+        // The findByIdWithRelations query will eagerly fetch subject and structures
+        // with chapters
         ExamTemplate templateWithRelations = templateRepository.findByIdWithRelations(savedTemplate.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam template not found after creation"));
-        
+
         return toResponse(templateWithRelations);
     }
 
@@ -110,10 +113,12 @@ public class ExamTemplateService {
         List<Long> templateIds = templates.stream().map(ExamTemplate::getId).toList();
         if (!templateIds.isEmpty()) {
             List<ExamStructure> allStructures = structureRepository.findByTemplate_IdIn(templateIds);
-            // Group structures by template ID - use template from structures but match by ID
+            // Group structures by template ID - use template from structures but match by
+            // ID
             Map<Long, List<ExamStructure>> structuresByTemplate = new HashMap<>();
             for (ExamStructure structure : allStructures) {
-                // Get template ID from the structure's template (lazy loaded but should be available in transaction)
+                // Get template ID from the structure's template (lazy loaded but should be
+                // available in transaction)
                 Long templateId = structure.getTemplate().getId();
                 structuresByTemplate.computeIfAbsent(templateId, k -> new ArrayList<>()).add(structure);
             }
@@ -138,6 +143,65 @@ public class ExamTemplateService {
                 .orElseThrow(() -> new ResourceNotFoundException("Exam template not found"));
     }
 
+    public ExamTemplateResponse updateTemplate(Long id, UpdateExamTemplateRequest request) {
+        ExamTemplate template = templateRepository.findByIdWithRelations(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam template not found"));
+
+        // Validate structure if provided
+        if (request.structures() != null && !request.structures().isEmpty()) {
+            int total = request.structures().stream().mapToInt(ExamStructureRequest::numQuestion).sum();
+            if (total != request.totalQuestions()) {
+                throw new BadRequestException("Sum of chapter questions must equal total questions");
+            }
+            // Validate numBasic + numAdvanced = numQuestion for each structure
+            for (ExamStructureRequest struct : request.structures()) {
+                int basic = struct.numBasic() != null ? struct.numBasic() : 0;
+                int advanced = struct.numAdvanced() != null ? struct.numAdvanced() : 0;
+                if (basic + advanced != struct.numQuestion()) {
+                    throw new BadRequestException("Số câu hỏi cơ bản + nâng cao phải bằng tổng số câu hỏi của chương");
+                }
+            }
+        }
+
+        // Update basic fields
+        template.setName(request.name());
+        template.setTotalQuestions(request.totalQuestions());
+
+        // Update structures - delete old ones and create new ones
+        template.getStructures().clear();
+        structureRepository.deleteByTemplate_Id(id);
+
+        if (request.structures() != null && !request.structures().isEmpty()) {
+            Map<Long, Chapter> chapterCache = new HashMap<>();
+            request.structures().forEach(structureRequest -> {
+                Chapter chapter = chapterCache.computeIfAbsent(structureRequest.chapterId(),
+                        chapterId -> chapterRepository.findById(chapterId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Chapter not found: " + chapterId)));
+                long available = questionRepository.countByChapter_IdAndActiveTrue(chapter.getId());
+                if (available < structureRequest.numQuestion()) {
+                    throw new BadRequestException("Not enough questions in chapter " + chapter.getName());
+                }
+                ExamStructure structure = ExamStructure.builder()
+                        .chapter(chapter)
+                        .template(template)
+                        .numQuestion(structureRequest.numQuestion())
+                        .numBasic(structureRequest.numBasic() != null ? structureRequest.numBasic() : 0)
+                        .numAdvanced(structureRequest.numAdvanced() != null ? structureRequest.numAdvanced() : 0)
+                        .build();
+                template.getStructures().add(structure);
+            });
+        }
+
+        ExamTemplate savedTemplate = templateRepository.save(template);
+        templateRepository.flush();
+
+        // Fetch again with relationships
+        ExamTemplate templateWithRelations = templateRepository.findByIdWithRelations(savedTemplate.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam template not found after update"));
+
+        return toResponse(templateWithRelations);
+    }
+
     private void validateStructure(CreateExamTemplateRequest request) {
         // Allow empty structures - can be added later
         if (request.structures() == null) {
@@ -156,7 +220,7 @@ public class ExamTemplateService {
         if (template == null) {
             throw new IllegalArgumentException("Template cannot be null");
         }
-        
+
         // Get structures - handle null or empty safely
         List<ExamTemplateResponse.ExamStructurePayload> structures = List.of();
         if (template.getStructures() != null && !template.getStructures().isEmpty()) {
@@ -164,33 +228,31 @@ public class ExamTemplateService {
                     .map(struct -> {
                         if (struct.getChapter() == null) {
                             throw new IllegalStateException(
-                                    String.format("Chapter is null for structure ID: %d in template ID: %d", 
+                                    String.format("Chapter is null for structure ID: %d in template ID: %d",
                                             struct.getId(), template.getId()));
                         }
                         return new ExamTemplateResponse.ExamStructurePayload(
                                 struct.getId(),
                                 struct.getChapter().getId(),
-                                struct.getNumQuestion()
-                        );
+                                struct.getNumQuestion(),
+                                struct.getNumBasic() != null ? struct.getNumBasic() : 0,
+                                struct.getNumAdvanced() != null ? struct.getNumAdvanced() : 0);
                     })
                     .toList();
         }
-        
+
         // Get subject ID - must not be null
         if (template.getSubject() == null) {
             throw new IllegalStateException(
                     String.format("Subject is null for template ID: %d", template.getId()));
         }
         Long subjectId = template.getSubject().getId();
-        
+
         return new ExamTemplateResponse(
                 template.getId(),
                 subjectId,
                 template.getName(),
                 template.getTotalQuestions(),
-                template.getDurationMinutes(),
-                structures
-        );
+                structures);
     }
 }
-

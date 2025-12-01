@@ -13,7 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_answers")
+@Table(name = "dap_an_bai_lam")
 public class ExamAnswer {
 
     @Id
@@ -21,24 +21,24 @@ public class ExamAnswer {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attempt_id", nullable = false)
+    @JoinColumn(name = "ma_bai_lam", nullable = false)
     private ExamAttempt attempt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
+    @JoinColumn(name = "ma_cau_hoi", nullable = false)
     private Question question;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "selected_option_id")
+    @JoinColumn(name = "ma_lua_chon")
     private QuestionOption selectedOption;
 
-    @Column(name = "fill_answer", columnDefinition = "text")
+    @Column(name = "dap_an_dien", columnDefinition = "text")
     private String fillAnswer;
 
-    @Column(name = "is_correct")
+    @Column(name = "dap_an_dung")
     private Boolean correct;
 
-    @Column(name = "answered_at")
+    @Column(name = "thoi_gian_tra_loi")
     private Instant answeredAt;
 }
 

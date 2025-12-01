@@ -11,12 +11,9 @@ public record QuestionResponse(
         String content,
         QuestionType questionType,
         String difficulty,
-        Integer marks,
         boolean active,
         List<QuestionOptionPayload> options,
-        List<String> answers
-) {
+        List<String> answers) {
     public record QuestionOptionPayload(Long id, String content, boolean correct) {
     }
 }
-

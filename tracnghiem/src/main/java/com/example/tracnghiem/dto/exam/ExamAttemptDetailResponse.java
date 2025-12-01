@@ -12,6 +12,7 @@ public record ExamAttemptDetailResponse(
             String questionType,
             Integer marks,
             Long selectedOptionId,
+            String selectedOptionContent,
             String fillAnswer,
             boolean correct,
             List<String> correctAnswers

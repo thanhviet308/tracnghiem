@@ -8,17 +8,16 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.List;
 
-public record CreateExamInstanceRequest(
+public record UpdateExamInstanceRequest(
         @NotNull Long templateId,
         @NotNull Long studentGroupId,
         @NotBlank String name,
         @NotNull Instant startTime,
         @NotNull Instant endTime,
         @Min(1) Integer durationMinutes,
-        @Min(1) Integer totalMarks, // Tổng điểm của đề thi
+        @Min(1) Integer totalMarks,
         boolean shuffleQuestions,
         boolean shuffleOptions,
-        @Valid List<SupervisorAssignment> supervisors) {
-    public record SupervisorAssignment(@NotNull Long supervisorId) {
-    }
+        @Valid List<CreateExamInstanceRequest.SupervisorAssignment> supervisors) {
 }
+

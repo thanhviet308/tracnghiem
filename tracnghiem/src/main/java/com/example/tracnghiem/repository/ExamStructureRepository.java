@@ -14,5 +14,7 @@ public interface ExamStructureRepository extends JpaRepository<ExamStructure, Lo
            "LEFT JOIN FETCH s.template " +
            "WHERE s.template.id IN :templateIds")
     List<ExamStructure> findByTemplate_IdIn(List<Long> templateIds);
+    
+    void deleteByTemplate_Id(Long templateId);
 }
 

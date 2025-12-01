@@ -18,6 +18,8 @@ public record StartAttemptResponse(
             String content,
             String questionType,
             Integer marks,
+            Long passageId,
+            String passageContent,
             List<OptionView> options
     ) {
     }

@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "questions")
+@Table(name = "cau_hoi")
 public class Question {
 
     @Id
@@ -24,34 +24,31 @@ public class Question {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chapter_id", nullable = false)
+    @JoinColumn(name = "ma_chuong", nullable = false)
     private Chapter chapter;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "passage_id")
+    @JoinColumn(name = "ma_doan_van")
     private Passage passage;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "noi_dung", columnDefinition = "text", nullable = false)
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "question_type", nullable = false)
+    @Column(name = "loai_cau_hoi", nullable = false)
     private QuestionType questionType;
 
-    @Column(length = 20)
+    @Column(name = "do_kho", length = 20)
     private String difficulty;
 
-    @Column(nullable = false)
-    private Integer marks = 1;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
+    @JoinColumn(name = "nguoi_tao")
     private User createdBy;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "trang_thai", nullable = false)
     private boolean active = true;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)

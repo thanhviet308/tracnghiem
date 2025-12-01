@@ -12,7 +12,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_attempts")
+@Table(name = "bai_lam")
 public class ExamAttempt {
 
     @Id
@@ -20,24 +20,24 @@ public class ExamAttempt {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exam_instance_id", nullable = false)
+    @JoinColumn(name = "ma_ky_thi", nullable = false)
     private ExamInstance examInstance;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    @JoinColumn(name = "ma_sinh_vien", nullable = false)
     private User student;
 
-    @Column(name = "started_at")
+    @Column(name = "thoi_gian_bat_dau")
     private Instant startedAt;
 
-    @Column(name = "submitted_at")
+    @Column(name = "thoi_gian_nop_bai")
     private Instant submittedAt;
 
-    @Column
+    @Column(name = "diem_so")
     private Integer score;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "trang_thai", nullable = false, length = 20)
     private ExamAttemptStatus status = ExamAttemptStatus.NOT_STARTED;
 }
 

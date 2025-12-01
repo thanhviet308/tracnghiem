@@ -13,7 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "student_group_subjects")
+@Table(name = "nhom_mon_hoc")
 public class StudentGroupSubject {
 
     @EmbeddedId
@@ -21,19 +21,19 @@ public class StudentGroupSubject {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("studentGroupId")
-    @JoinColumn(name = "student_group_id")
+    @JoinColumn(name = "ma_nhom")
     private StudentGroup studentGroup;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("subjectId")
-    @JoinColumn(name = "subject_id")
+    @JoinColumn(name = "ma_mon")
     private Subject subject;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id")
+    @JoinColumn(name = "ma_giao_vien")
     private User teacher;
 
-    @Column(name = "assigned_at", nullable = false)
+    @Column(name = "ngay_phan_cong", nullable = false)
     private Instant assignedAt;
 
     @PrePersist

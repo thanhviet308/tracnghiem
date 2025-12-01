@@ -12,7 +12,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "exam_instances")
+@Table(name = "ky_thi")
 public class ExamInstance {
 
     @Id
@@ -20,32 +20,35 @@ public class ExamInstance {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "template_id", nullable = false)
+    @JoinColumn(name = "ma_khung_de", nullable = false)
     private ExamTemplate template;
 
-    @Column(nullable = false)
+    @Column(name = "ten_ky_thi", nullable = false)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_group_id", nullable = false)
+    @JoinColumn(name = "ma_nhom", nullable = false)
     private StudentGroup studentGroup;
 
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "thoi_gian_bat_dau", nullable = false)
     private Instant startTime;
 
-    @Column(name = "end_time", nullable = false)
+    @Column(name = "thoi_gian_ket_thuc", nullable = false)
     private Instant endTime;
 
-    @Column(name = "duration_minutes", nullable = false)
+    @Column(name = "thoi_luong_phut", nullable = false)
     private Integer durationMinutes;
 
-    @Column(name = "shuffle_questions", nullable = false)
+    @Column(name = "tron_cau_hoi", nullable = false)
     private boolean shuffleQuestions;
 
-    @Column(name = "shuffle_options", nullable = false)
+    @Column(name = "tron_dap_an", nullable = false)
     private boolean shuffleOptions;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "tong_diem", nullable = false)
+    private Integer totalMarks; // Tổng điểm của đề thi
+
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
     @PrePersist
@@ -55,4 +58,3 @@ public class ExamInstance {
         }
     }
 }
-

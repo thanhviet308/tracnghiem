@@ -42,12 +42,12 @@ public class ExamAttemptService {
     private final ExamQuestionRepository examQuestionRepository;
 
     public ExamAttemptService(ExamAttemptRepository examAttemptRepository,
-                              ExamInstanceService examInstanceService,
-                              ExamAnswerRepository examAnswerRepository,
-                              QuestionOptionRepository questionOptionRepository,
-                              QuestionAnswerRepository questionAnswerRepository,
-                              ClassStudentRepository classStudentRepository,
-                              ExamQuestionRepository examQuestionRepository) {
+            ExamInstanceService examInstanceService,
+            ExamAnswerRepository examAnswerRepository,
+            QuestionOptionRepository questionOptionRepository,
+            QuestionAnswerRepository questionAnswerRepository,
+            ClassStudentRepository classStudentRepository,
+            ExamQuestionRepository examQuestionRepository) {
         this.examAttemptRepository = examAttemptRepository;
         this.examInstanceService = examInstanceService;
         this.examAnswerRepository = examAnswerRepository;
@@ -62,7 +62,7 @@ public class ExamAttemptService {
         ensureStudentBelongsToGroup(examInstance, student);
         Instant now = Instant.now();
         if (now.isBefore(examInstance.getStartTime()) || now.isAfter(examInstance.getEndTime())) {
-            throw new BadRequestException("Exam is not active");
+            throw new BadRequestException("Kỳ thi chưa bắt đầu hoặc đã kết thúc");
         }
 
         ExamAttempt attempt = examAttemptRepository.findByExamInstance_IdAndStudent_Id(examInstanceId, student.getId())
@@ -72,6 +72,11 @@ public class ExamAttemptService {
                         .status(ExamAttemptStatus.IN_PROGRESS)
                         .startedAt(now)
                         .build()));
+
+        // Prevent starting a new attempt if already submitted or graded
+        if (attempt.getStatus() == ExamAttemptStatus.SUBMITTED || attempt.getStatus() == ExamAttemptStatus.GRADED) {
+            throw new BadRequestException("Bạn đã hoàn thành bài thi này. Không thể thi lại.");
+        }
 
         if (attempt.getStatus() == ExamAttemptStatus.NOT_STARTED) {
             attempt.setStatus(ExamAttemptStatus.IN_PROGRESS);
@@ -90,17 +95,16 @@ public class ExamAttemptService {
     public ExamAttemptResponse answerQuestion(Long attemptId, User student, AnswerQuestionRequest request) {
         ExamAttempt attempt = getAttemptForStudent(attemptId, student);
         if (attempt.getStatus() != ExamAttemptStatus.IN_PROGRESS) {
-            throw new BadRequestException("Attempt is not active");
+            throw new BadRequestException("Bài thi không còn hoạt động");
         }
         Instant now = Instant.now();
         if (now.isAfter(calculateExpiry(attempt))) {
-            throw new BadRequestException("Attempt time exceeded");
+            throw new BadRequestException("Đã hết thời gian làm bài");
         }
 
         ExamQuestion examQuestion = examQuestionRepository.findById(new ExamQuestionId(
                 attempt.getExamInstance().getId(),
-                request.questionId()
-        )).orElseThrow(() -> new BadRequestException("Question not part of exam"));
+                request.questionId())).orElseThrow(() -> new BadRequestException("Câu hỏi không thuộc đề thi này"));
 
         Question question = examQuestion.getQuestion();
         ExamAnswer answer = examAnswerRepository.findByAttempt_IdAndQuestion_Id(attempt.getId(), question.getId())
@@ -112,19 +116,19 @@ public class ExamAttemptService {
 
         if (question.getQuestionType() == com.example.tracnghiem.domain.question.QuestionType.MCQ) {
             if (request.selectedOptionId() == null) {
-                throw new BadRequestException("selectedOptionId is required for MCQ");
+                throw new BadRequestException("Vui lòng chọn đáp án cho câu hỏi trắc nghiệm");
             }
             QuestionOption selectedOption = questionOptionRepository.findById(request.selectedOptionId())
-                    .orElseThrow(() -> new BadRequestException("Option not found"));
+                    .orElseThrow(() -> new BadRequestException("Không tìm thấy đáp án được chọn"));
             if (!selectedOption.getQuestion().getId().equals(question.getId())) {
-                throw new BadRequestException("Option does not belong to question");
+                throw new BadRequestException("Đáp án không thuộc câu hỏi này");
             }
             answer.setSelectedOption(selectedOption);
             answer.setFillAnswer(null);
             answer.setCorrect(selectedOption.isCorrect());
         } else {
             if (request.fillAnswer() == null || request.fillAnswer().isBlank()) {
-                throw new BadRequestException("fillAnswer is required");
+                throw new BadRequestException("Vui lòng nhập đáp án cho câu hỏi tự luận");
             }
             answer.setFillAnswer(request.fillAnswer());
             answer.setSelectedOption(null);
@@ -141,16 +145,20 @@ public class ExamAttemptService {
     public SubmitAttemptResponse submitAttempt(Long attemptId, User student) {
         ExamAttempt attempt = getAttemptForStudent(attemptId, student);
         if (attempt.getStatus() != ExamAttemptStatus.IN_PROGRESS) {
-            throw new BadRequestException("Attempt already submitted");
+            throw new BadRequestException("Bài thi đã được nộp");
         }
         Instant now = Instant.now();
         if (now.isAfter(calculateExpiry(attempt))) {
-            throw new BadRequestException("Attempt time exceeded");
+            throw new BadRequestException("Đã hết thời gian làm bài");
         }
-        int score = examAnswerRepository.findByAttempt_Id(attempt.getId()).stream()
+        // Tính điểm động: (tổng điểm / số câu hỏi) * số câu đúng
+        List<ExamQuestion> examQuestions = examInstanceService.getExamQuestions(attempt.getExamInstance().getId());
+        int totalQuestions = examQuestions.size();
+        int correctAnswers = (int) examAnswerRepository.findByAttempt_Id(attempt.getId()).stream()
                 .filter(ans -> Boolean.TRUE.equals(ans.getCorrect()))
-                .mapToInt(ans -> ans.getQuestion().getMarks())
-                .sum();
+                .count();
+        int totalMarks = attempt.getExamInstance().getTotalMarks();
+        int score = totalQuestions > 0 ? (int) Math.round((double) totalMarks * correctAnswers / totalQuestions) : 0;
         attempt.setScore(score);
         attempt.setSubmittedAt(now);
         attempt.setStatus(ExamAttemptStatus.SUBMITTED);
@@ -177,14 +185,61 @@ public class ExamAttemptService {
                 && requester.getRole() == com.example.tracnghiem.domain.user.UserRole.STUDENT) {
             throw new ForbiddenException("Cannot view attempt");
         }
+
+        // Get all questions in the exam
+        List<ExamQuestion> examQuestions = examInstanceService.getExamQuestions(attempt.getExamInstance().getId());
+
+        // Tính điểm cho mỗi câu hỏi: tổng điểm / số câu hỏi
+        int totalMarks = attempt.getExamInstance().getTotalMarks();
+        int totalQuestions = examQuestions.size();
+        int marksPerQuestion = totalQuestions > 0 ? totalMarks / totalQuestions : 0;
+
+        // Get answers for this attempt
         List<ExamAnswer> answers = examAnswerRepository.findByAttempt_Id(attemptId);
-        List<ExamAttemptDetailResponse.QuestionAnswerView> answerViews = answers.stream()
-                .map(this::toQuestionAnswerView)
+        Map<Long, ExamAnswer> answerMap = answers.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        a -> a.getQuestion().getId(),
+                        a -> a,
+                        (a1, a2) -> a1));
+
+        // Build answer views for all questions in the exam
+        List<ExamAttemptDetailResponse.QuestionAnswerView> answerViews = examQuestions.stream()
+                .map(eq -> {
+                    ExamAnswer answer = answerMap.get(eq.getQuestion().getId());
+                    if (answer != null) {
+                        return toQuestionAnswerView(answer, marksPerQuestion);
+                    } else {
+                        // Question not answered - create a view with no answer
+                        Question question = eq.getQuestion();
+                        List<String> correctAnswers;
+                        if (question.getQuestionType() == com.example.tracnghiem.domain.question.QuestionType.MCQ) {
+                            correctAnswers = question.getOptions().stream()
+                                    .filter(QuestionOption::isCorrect)
+                                    .map(QuestionOption::getContent)
+                                    .toList();
+                        } else {
+                            correctAnswers = questionAnswerRepository.findByQuestion_Id(question.getId()).stream()
+                                    .map(a -> a.getCorrectAnswer())
+                                    .toList();
+                        }
+                        return new ExamAttemptDetailResponse.QuestionAnswerView(
+                                question.getId(),
+                                question.getContent(),
+                                question.getQuestionType().name(),
+                                marksPerQuestion,
+                                null, // No selected option ID
+                                null, // No selected option content
+                                null, // No fill answer
+                                false, // Not correct (not answered)
+                                correctAnswers);
+                    }
+                })
                 .toList();
+
         return new ExamAttemptDetailResponse(toAttemptResponse(attempt), answerViews);
     }
 
-    private ExamAttemptDetailResponse.QuestionAnswerView toQuestionAnswerView(ExamAnswer answer) {
+    private ExamAttemptDetailResponse.QuestionAnswerView toQuestionAnswerView(ExamAnswer answer, int marksPerQuestion) {
         Question question = answer.getQuestion();
         List<String> correctAnswers;
         if (question.getQuestionType() == com.example.tracnghiem.domain.question.QuestionType.MCQ) {
@@ -201,12 +256,12 @@ public class ExamAttemptService {
                 question.getId(),
                 question.getContent(),
                 question.getQuestionType().name(),
-                question.getMarks(),
+                marksPerQuestion,
                 answer.getSelectedOption() == null ? null : answer.getSelectedOption().getId(),
+                answer.getSelectedOption() == null ? null : answer.getSelectedOption().getContent(),
                 answer.getFillAnswer(),
                 Boolean.TRUE.equals(answer.getCorrect()),
-                correctAnswers
-        );
+                correctAnswers);
     }
 
     private void ensureStudentBelongsToGroup(ExamInstance examInstance, User student) {
@@ -218,43 +273,68 @@ public class ExamAttemptService {
 
     private ExamAttempt getAttemptForStudent(Long attemptId, User student) {
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài làm"));
         if (!attempt.getStudent().getId().equals(student.getId())) {
-            throw new ForbiddenException("Attempt does not belong to student");
+            throw new ForbiddenException("Bài làm không thuộc về sinh viên này");
         }
         return attempt;
     }
 
     private Instant calculateExpiry(ExamAttempt attempt) {
-        Instant byDuration = attempt.getStartedAt().plus(attempt.getExamInstance().getDurationMinutes(), ChronoUnit.MINUTES);
-        return byDuration.isBefore(attempt.getExamInstance().getEndTime()) ? byDuration : attempt.getExamInstance().getEndTime();
+        Instant byDuration = attempt.getStartedAt().plus(attempt.getExamInstance().getDurationMinutes(),
+                ChronoUnit.MINUTES);
+        return byDuration.isBefore(attempt.getExamInstance().getEndTime()) ? byDuration
+                : attempt.getExamInstance().getEndTime();
     }
 
-    private List<StartAttemptResponse.ExamQuestionView> buildQuestionView(ExamInstance examInstance, ExamAttempt attempt) {
+    private List<StartAttemptResponse.ExamQuestionView> buildQuestionView(ExamInstance examInstance,
+            ExamAttempt attempt) {
+        boolean shuffleQuestions = examInstance.isShuffleQuestions();
         boolean shuffleOptions = examInstance.isShuffleOptions();
-        List<ExamQuestion> examQuestions = examInstanceService.getExamQuestions(examInstance.getId());
+        List<ExamQuestion> examQuestions = new ArrayList<>(examInstanceService.getExamQuestions(examInstance.getId()));
+        
+        // Shuffle thứ tự câu hỏi nếu được bật, sử dụng attemptId + studentId làm seed để mỗi sinh viên có thứ tự khác nhau
+        if (shuffleQuestions) {
+            long seed = attempt.getId() * 31L + attempt.getStudent().getId() * 17L;
+            Collections.shuffle(examQuestions, new Random(seed));
+        }
+        
+        // Tính điểm cho mỗi câu hỏi: tổng điểm / số câu hỏi
+        int totalMarks = examInstance.getTotalMarks();
+        int totalQuestions = examQuestions.size();
+        int marksPerQuestion = totalQuestions > 0 ? totalMarks / totalQuestions : 0;
+
         return examQuestions.stream()
-                .map(eq -> toQuestionView(eq, shuffleOptions, attempt.getId()))
+                .map(eq -> toQuestionView(eq, shuffleOptions, attempt, marksPerQuestion))
                 .toList();
     }
 
-    private StartAttemptResponse.ExamQuestionView toQuestionView(ExamQuestion examQuestion, boolean shuffleOptions, Long seedBase) {
+    private StartAttemptResponse.ExamQuestionView toQuestionView(ExamQuestion examQuestion, boolean shuffleOptions,
+            ExamAttempt attempt, int marksPerQuestion) {
         Question question = examQuestion.getQuestion();
         List<QuestionOption> options = new ArrayList<>(question.getOptions());
         options.sort(Comparator.comparing(opt -> Optional.ofNullable(opt.getOptionOrder()).orElse(Integer.MAX_VALUE)));
         if (shuffleOptions) {
-            Collections.shuffle(options, new Random(seedBase + question.getId()));
+            // Sử dụng attemptId + studentId + questionId làm seed để mỗi sinh viên có thứ tự đáp án khác nhau
+            long seed = attempt.getId() * 31L + attempt.getStudent().getId() * 17L + question.getId() * 7L;
+            Collections.shuffle(options, new Random(seed));
         }
         List<StartAttemptResponse.OptionView> optionViews = options.stream()
                 .map(opt -> new StartAttemptResponse.OptionView(opt.getId(), opt.getContent()))
                 .toList();
+
+        // Get passage info if question has a passage
+        Long passageId = question.getPassage() != null ? question.getPassage().getId() : null;
+        String passageContent = question.getPassage() != null ? question.getPassage().getContent() : null;
+
         return new StartAttemptResponse.ExamQuestionView(
                 question.getId(),
                 question.getContent(),
                 question.getQuestionType().name(),
-                question.getMarks(),
-                optionViews
-        );
+                marksPerQuestion,
+                passageId,
+                passageContent,
+                optionViews);
     }
 
     private ExamAttemptResponse toAttemptResponse(ExamAttempt attempt) {
@@ -263,11 +343,10 @@ public class ExamAttemptService {
                 attempt.getExamInstance().getId(),
                 attempt.getStudent().getId(),
                 attempt.getStudent().getFullName(),
+                attempt.getStudent().getEmail(),
                 attempt.getStartedAt(),
                 attempt.getSubmittedAt(),
                 attempt.getScore(),
-                attempt.getStatus()
-        );
+                attempt.getStatus());
     }
 }
-

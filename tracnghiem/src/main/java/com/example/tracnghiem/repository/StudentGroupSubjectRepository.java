@@ -11,5 +11,7 @@ public interface StudentGroupSubjectRepository extends JpaRepository<StudentGrou
     List<StudentGroupSubject> findByStudentGroup_Id(Long studentGroupId);
 
     List<StudentGroupSubject> findBySubject_Id(Long subjectId);
+
+    List<StudentGroupSubject> findByTeacher_Id(Long teacherId);
 }
 

@@ -12,7 +12,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "passages")
+@Table(name = "doan_van")
 public class Passage {
 
     @Id
@@ -20,13 +20,13 @@ public class Passage {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chapter_id", nullable = false)
+    @JoinColumn(name = "ma_chuong", nullable = false)
     private Chapter chapter;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "noi_dung", columnDefinition = "text", nullable = false)
     private String content;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "ngay_tao", nullable = false)
     private Instant createdAt;
 
     @PrePersist
@@ -36,4 +36,3 @@ public class Passage {
         }
     }
 }
-

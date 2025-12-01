@@ -18,10 +18,10 @@ import java.io.Serializable;
 @Setter
 public class ExamQuestionId implements Serializable {
 
-    @Column(name = "exam_instance_id")
+    @Column(name = "ma_ky_thi")
     private Long examInstanceId;
 
-    @Column(name = "question_id")
+    @Column(name = "ma_cau_hoi")
     private Long questionId;
 }
 

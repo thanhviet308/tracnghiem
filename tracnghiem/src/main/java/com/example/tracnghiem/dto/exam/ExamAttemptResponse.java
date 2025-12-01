@@ -9,6 +9,7 @@ public record ExamAttemptResponse(
         Long examInstanceId,
         Long studentId,
         String studentName,
+        String studentEmail,
         Instant startedAt,
         Instant submittedAt,
         Integer score,
