@@ -3,6 +3,7 @@ package com.example.tracnghiem.service;
 import com.example.tracnghiem.domain.question.*;
 import com.example.tracnghiem.domain.subject.Chapter;
 import com.example.tracnghiem.domain.user.User;
+import com.example.tracnghiem.dto.question.BulkCreateQuestionResponse;
 import com.example.tracnghiem.dto.question.CreateQuestionRequest;
 import com.example.tracnghiem.dto.question.QuestionFilterRequest;
 import com.example.tracnghiem.dto.question.QuestionResponse;
@@ -20,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -53,14 +56,66 @@ public class QuestionService {
         return toResponse(questionRepository.save(question));
     }
 
-    public List<QuestionResponse> bulkCreateQuestions(List<CreateQuestionRequest> requests, Long creatorId) {
-        List<Question> questions = new ArrayList<>();
-        for (CreateQuestionRequest request : requests) {
+    public BulkCreateQuestionResponse bulkCreateQuestions(List<CreateQuestionRequest> requests, Long creatorId) {
+        List<Question> questionsToCreate = new ArrayList<>();
+        List<BulkCreateQuestionResponse.DuplicateQuestionInfo> duplicates = new ArrayList<>();
+        
+        // Set để track các câu hỏi đã xử lý trong cùng một lần import (tránh trùng trong file)
+        Set<String> processedInFile = new HashSet<>();
+        
+        for (int i = 0; i < requests.size(); i++) {
+            CreateQuestionRequest request = requests.get(i);
+            
+            // Tạo key để kiểm tra trùng trong file: chapterId + content + passageId
+            String fileKey = request.chapterId() + "|" + request.content().trim() + "|" + 
+                           (request.passageId() != null ? request.passageId() : "NULL");
+            
+            // Kiểm tra trùng trong cùng một lần import
+            if (processedInFile.contains(fileKey)) {
+                duplicates.add(new BulkCreateQuestionResponse.DuplicateQuestionInfo(
+                    request.content(),
+                    request.chapterId(),
+                    request.passageId(),
+                    "TRONG_FILE"
+                ));
+                continue;
+            }
+            
+            // Kiểm tra trùng với câu hỏi đã tồn tại trong database
+            List<Question> existingQuestions = questionRepository.findDuplicates(
+                request.chapterId(),
+                request.content().trim(),
+                request.passageId()
+            );
+            
+            if (!existingQuestions.isEmpty()) {
+                duplicates.add(new BulkCreateQuestionResponse.DuplicateQuestionInfo(
+                    request.content(),
+                    request.chapterId(),
+                    request.passageId(),
+                    "DA_TON_TAI"
+                ));
+                processedInFile.add(fileKey); // Đánh dấu đã xử lý để tránh thêm vào duplicates nếu có trùng trong file
+                continue;
+            }
+            
+            // Câu hỏi không trùng, thêm vào danh sách để tạo
             Question question = buildQuestionEntity(new Question(), request, creatorId);
-            questions.add(question);
+            questionsToCreate.add(question);
+            processedInFile.add(fileKey);
         }
-        List<Question> savedQuestions = questionRepository.saveAll(questions);
-        return savedQuestions.stream().map(this::toResponse).toList();
+        
+        // Lưu các câu hỏi không trùng
+        List<Question> savedQuestions = questionRepository.saveAll(questionsToCreate);
+        List<QuestionResponse> created = savedQuestions.stream().map(this::toResponse).toList();
+        
+        return new BulkCreateQuestionResponse(
+            created,
+            duplicates,
+            requests.size(),
+            created.size(),
+            duplicates.size()
+        );
     }
 
     public QuestionResponse updateQuestion(Long questionId, CreateQuestionRequest request, Long editorId) {

@@ -2,6 +2,7 @@ package com.example.tracnghiem.controller;
 
 import com.example.tracnghiem.domain.question.QuestionType;
 import com.example.tracnghiem.domain.user.User;
+import com.example.tracnghiem.dto.question.BulkCreateQuestionResponse;
 import com.example.tracnghiem.dto.question.CreateQuestionRequest;
 import com.example.tracnghiem.dto.question.QuestionFilterRequest;
 import com.example.tracnghiem.dto.question.QuestionResponse;
@@ -62,7 +63,7 @@ public class QuestionController {
 
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
-    public ResponseEntity<List<QuestionResponse>> bulkCreateQuestions(@AuthenticationPrincipal User user,
+    public ResponseEntity<BulkCreateQuestionResponse> bulkCreateQuestions(@AuthenticationPrincipal User user,
                                                                       @RequestBody @Valid List<CreateQuestionRequest> requests) {
         return ResponseEntity.ok(questionService.bulkCreateQuestions(requests, user.getId()));
     }

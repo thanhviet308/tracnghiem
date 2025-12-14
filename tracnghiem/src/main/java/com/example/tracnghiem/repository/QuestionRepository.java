@@ -37,4 +37,19 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     
     // Tìm tất cả câu hỏi cùng passage
     List<Question> findByPassage_IdAndActiveTrue(Long passageId);
+    
+    // Tìm câu hỏi trùng dựa trên content, chapter, passage
+    @Query("""
+            SELECT q FROM Question q
+            WHERE q.chapter.id = :chapterId
+            AND q.content = :content
+            AND (
+                (:passageId IS NULL AND q.passage IS NULL)
+                OR (q.passage IS NOT NULL AND q.passage.id = :passageId)
+            )
+            """)
+    List<Question> findDuplicates(
+            @Param("chapterId") Long chapterId,
+            @Param("content") String content,
+            @Param("passageId") Long passageId);
 }
